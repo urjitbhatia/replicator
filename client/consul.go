@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"runtime"
+	"strings"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
@@ -26,7 +27,15 @@ func NewConsulClient(addr, token string) (structs.ConsulClient, error) {
 	// TODO (e.westfall): Add a quick health check call to an API endpoint to
 	// validate connectivity or return an error back to the caller.
 	config := consul.DefaultConfig()
-	config.Address = addr
+	addrArr := strings.Split(addr, "://")
+
+	// Checking scheme of consul endpoint based on address
+	if len(addrArr) > 1 {
+		config.Scheme = addrArr[0]
+		config.Address = addrArr[1]
+	} else {
+		config.Address = addrArr[0]
+	}
 
 	if token != "" {
 		config.Token = token

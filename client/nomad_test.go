@@ -8,8 +8,10 @@ import (
 
 func TestNomad_NewNomadClient(t *testing.T) {
 	addr := "http://nomad.ce.systems:4646"
+	config := "nomad.ce.systems"
+	token := "change_me"
 
-	_, err := NewNomadClient(addr)
+	_, err := NewNomadClient(addr, token, config)
 	if err != nil {
 		t.Fatalf("error creating Nomad client %s", err)
 	}
@@ -30,6 +32,7 @@ func TestNomad_CalculateUsage(t *testing.T) {
 			MemoryMB: 2048,
 		},
 	}
+
 	nodes := make([]*structs.NodeAllocation, 2)
 	nodes[0] = node1
 	nodes[1] = node2
@@ -165,6 +168,10 @@ func TestNomad_MaxAllowedClusterUtilization(t *testing.T) {
 		},
 		NodeCount: 4,
 		TaskAllocation: structs.AllocationResources{
+			MemoryMB: 2048,
+			CPUMHz:   2400,
+		},
+		UsedCapacity: structs.AllocationResources{
 			MemoryMB: 2048,
 			CPUMHz:   2400,
 		},

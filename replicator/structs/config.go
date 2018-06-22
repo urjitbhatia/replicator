@@ -54,6 +54,13 @@ type Config struct {
 	// (may be an IP address or FQDN) with port.
 	Nomad string `mapstructure:"nomad"`
 
+	// Nomad ACL token.
+	NomadToken string `mapstructure:"nomad_token"`
+
+	// NomadTLSServerName, if set, is used to set the SNI host when connecting via
+	// TLS.
+	NomadTLSServerName string `mapstructure:"nomad_tls_server_name"`
+
 	// NomadClient provides a client to interact with the Nomad API.
 	NomadClient NomadClient
 
@@ -111,6 +118,13 @@ func (c *Config) Merge(b *Config) *Config {
 
 	if b.Nomad != "" {
 		config.Nomad = b.Nomad
+	}
+
+	if b.NomadToken != "" {
+		config.NomadToken = b.NomadToken
+	}
+	if b.NomadTLSServerName != "" {
+		config.NomadTLSServerName = b.NomadTLSServerName
 	}
 
 	if b.Consul != "" {

@@ -73,6 +73,8 @@ func parseConfig(result *structs.Config, list *ast.ObjectList) error {
 		"http_port",
 		"rpc_port",
 		"nomad",
+		"nomad_token",
+		"nomad_tls_server_name",
 		"consul",
 		"consul_key_root",
 		"consul_token",

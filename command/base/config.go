@@ -75,7 +75,9 @@ func DevConfig() *structs.Config {
 // clients. Must be called after configuration merging is complete.
 func InitializeClients(config *structs.Config) (err error) {
 	// Setup the Nomad Client
-	nClient, err := client.NewNomadClient(config.Nomad)
+	nClient, err := client.NewNomadClient(config.Nomad, config.NomadToken,
+		config.NomadTLSServerName)
+
 	if err != nil {
 		return
 	}

@@ -156,6 +156,8 @@ func (c *Command) parseFlags() *structs.Config {
 	flags.StringVar(&cliConfig.ConsulToken, "consul-token", "", "")
 	flags.StringVar(&cliConfig.LogLevel, "log-level", "", "")
 	flags.StringVar(&cliConfig.Nomad, "nomad", "", "")
+	flags.StringVar(&cliConfig.NomadToken, "nomad-token", "", "")
+	flags.StringVar(&cliConfig.NomadTLSServerName, "nomad-tls-server-name", "", "")
 	flags.IntVar(&cliConfig.ClusterScalingInterval, "cluster-scaling-interval", 0, "")
 	flags.IntVar(&cliConfig.JobScalingInterval, "job-scaling-interval", 0, "")
 	flags.IntVar(&cliConfig.ScalingConcurrency, "scaling-concurrency", 0, "")
