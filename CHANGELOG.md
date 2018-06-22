@@ -8,6 +8,9 @@ NEW FEATURES:
 * **Worker Pool Configuration In Consul**: Replicator now supports the ability to store full worker pool configuration in the Consul Key/Value store allowing for minimal configuration to be stored in the node meta configuration parameters. [GH-204]
 * **replicator_retry_threshold**: A new config flag added to allow configuration for retrying job scaling activites before entering failsafe. Thank you to @djenriquez [GH-261] 
 
+IMPROVEMENTS:
+* Replicator configuration now takes into account Nomad ACL token and Consul HTTP scheme. [GH-273](https://github.com/elsevier-core-engineering/replicator/pull/273)
+
 BUG FIXES:
 
 * Filter out Nomad jobs that do not include an `update` stanza to prevent segmentation violations when attempting to verify job scaling activities. Thank you to @burdandrei. [GH-209]
