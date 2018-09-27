@@ -56,6 +56,11 @@ func (c *nomadClient) JobGroupScale(jobName string, group *structs.GroupScalingP
 		}
 	}
 
+	// Ensure that job is stable before triggering scale action
+	if !*jobResp.Stable {
+		logging.Warning("client/job_scaling: Job %s is not stable. Bailing on scale action.", jobName)
+		return
+	}
 	// Submit the job to the Register API endpoint with the altered count number
 	// and check that no error is returned.
 	resp, _, err := c.nomad.Jobs().Register(jobResp, &nomad.WriteOptions{})
