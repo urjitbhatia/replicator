@@ -10,7 +10,7 @@ LABEL maintainer Eric Westfall<(eawestfall@gmail.com> (@eawestfall)
 LABEL vendor "Elsevier Core Engineering"
 LABEL documentation "https://github.com/elsevier-core-engineering/replicator"
 
-ENV REPLICATOR_VERSION v1.1.0-beta1
+ENV REPLICATOR_VERSION v1.1.0-beta2_urjit
 
 WORKDIR /usr/local/bin/
 
@@ -23,7 +23,7 @@ RUN buildDeps=' \
         ' \
         set -x \
         && apk --no-cache add $buildDeps \
-        && wget -O replicator https://github.com/elsevier-core-engineering/replicator/releases/download/${REPLICATOR_VERSION}/linux-amd64-replicator \
+        && wget -O replicator https://github.com/urjitbhatia/replicator/releases/download/${REPLICATOR_VERSION}/linux-amd64-replicator \
         && chmod +x /usr/local/bin/replicator \
         && apk del $buildDeps \
         && echo "Build complete."
