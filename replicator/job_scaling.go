@@ -136,7 +136,7 @@ func (s *Server) jobScaling(id int, jobs <-chan string,
 
 				if group.ScaleDirection == client.ScalingDirectionOut || group.ScaleDirection == client.ScalingDirectionIn {
 					if group.Enabled {
-						logging.Info("core/job_scaling: scaling for job \"%v\" and group \"%v\" is enabled; a "+
+						logging.Debug("core/job_scaling: scaling for job \"%v\" and group \"%v\" is enabled; a "+
 							"scaling operation (%v) will be requested. Metric: (%v)",
 							jobName, group.GroupName, group.ScaleDirection, group.ScalingMetric)
 
