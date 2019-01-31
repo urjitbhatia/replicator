@@ -251,7 +251,7 @@ func checkOrphanedGroup(jobName string, groups []*nomad.TaskGroup, scaling *stru
 	taskGroupNames := make([]string, 0)
 	taskGroupPolicyNames := make([]string, 0)
 
-	policiesToRemove := make([]string, 0)
+	policiesToKeep := make(map[string]bool)
 
 	scaling.Lock.RLock()
 	if val, ok := scaling.Policies[jobName]; ok {
@@ -267,13 +267,15 @@ func checkOrphanedGroup(jobName string, groups []*nomad.TaskGroup, scaling *stru
 	for _, g := range taskGroupNames {
 		for _, gp := range taskGroupPolicyNames {
 			if g == gp {
-				policiesToRemove = append(policiesToRemove, g)
+				policiesToKeep[g] = true
 			}
 		}
 	}
 	scaling.Lock.RUnlock()
 
-	for _, g := range policiesToRemove {
-		removeGroupScalingPolicy(jobName, g, scaling)
+	for _, g := range taskGroupPolicyNames {
+		if _, keep := policiesToKeep[g]; !keep {
+			removeGroupScalingPolicy(jobName, g, scaling)
+		}
 	}
 }
