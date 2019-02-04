@@ -33,10 +33,15 @@ func (c *nomadClient) JobGroupScale(jobName string, group *structs.GroupScalingP
 	// Use the current task count in order to determine whether or not a scaling
 	// event will violate the min/max job policy.
 	for i, taskGroup := range jobResp.TaskGroups {
+		if group.GroupName != *taskGroup.Name {
+			// There could be multiple groups in a job - make sure we match the group name.
+			continue
+		}
+
 		if group.ScaleDirection == ScalingDirectionOut && *taskGroup.Count >= group.Max ||
 			group.ScaleDirection == ScalingDirectionIn && *taskGroup.Count <= group.Min {
-			logging.Debug("client/job_scaling: scale %v not permitted due to constraints on job \"%v\" and group \"%v\"",
-				group.ScaleDirection, *jobResp.ID, group.GroupName)
+			logging.Debug("client/job_scaling: scale %v not permitted due to constraints on job \"%v\" and group \"%v\", targetCount: %d, GroupMin: %d GroupMax: %d",
+				group.ScaleDirection, *jobResp.ID, group.GroupName, *taskGroup.Count, group.Min, group.Max)
 			return
 		}
 
