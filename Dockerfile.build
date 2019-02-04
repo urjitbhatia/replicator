@@ -1,6 +1,6 @@
 FROM golang AS builder
 
-ENV APP_PATH /go/src/github.com/elsevier-core-engineering/replicator
+ENV APP_PATH /go/src/github.com/urjitbhatia/replicator
 
 RUN mkdir -p $APP_PATH
 WORKDIR $APP_PATH
@@ -13,12 +13,11 @@ RUN \
   ./scripts/build.sh
 
 FROM alpine:edge AS app
-LABEL maintainer Eric Westfall<(eawestfall@gmail.com> (@eawestfall)
-LABEL vendor "Elsevier Core Engineering"
-LABEL documentation "https://github.com/elsevier-core-engineering/replicator"
+LABEL maintainer Urjit Singh Bhatia<(urjitsinghbhatia@gmail.com> (@urjitbhatia)
+LABEL documentation "https://github.com/urjitbhatia/replicator"
 
-ENV APP_PATH /go/src/github.com/elsevier-core-engineering/replicator
-ENV REPLICATOR_VERSION v1.0.3
+ENV APP_PATH /go/src/github.com/urjitbhatia/replicator
+ENV REPLICATOR_VERSION v2.0.0
 
 WORKDIR /usr/local/bin/
 
