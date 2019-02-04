@@ -3,6 +3,7 @@ dist: trusty
 language: go
 go:
 - 1.11.x
+go_import_path: github.com/elsevier-core-engineering/replicator
 before_script:
 - wget https://releases.hashicorp.com/consul/1.4.2/consul_1.4.2_linux_amd64.zip
 - unzip -d $GOPATH/bin consul_1.4.2_linux_amd64.zip
