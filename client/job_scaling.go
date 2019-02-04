@@ -45,8 +45,8 @@ func (c *nomadClient) JobGroupScale(jobName string, group *structs.GroupScalingP
 			return
 		}
 
-		logging.Info("client/job_scaling: scale %v will now be initiated against job \"%v\" and group \"%v\"",
-			group.ScaleDirection, jobName, group.GroupName)
+		logging.Info("client/job_scaling: scale %v will now be initiated against job \"%v\" and group \"%v\" for Metric: \"%s\"",
+			group.ScaleDirection, jobName, group.GroupName, group.ScalingMetric)
 
 		// Depending on the scaling direction decrement/incrament the count;
 		// currently replicator only supports addition/subtraction of 1.
