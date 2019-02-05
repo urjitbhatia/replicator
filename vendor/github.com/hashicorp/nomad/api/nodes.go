@@ -4,9 +4,20 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"time"
+)
 
-	"github.com/hashicorp/nomad/nomad/structs"
+const (
+	NodeStatusInit  = "initializing"
+	NodeStatusReady = "ready"
+	NodeStatusDown  = "down"
+
+	// NodeSchedulingEligible and Ineligible marks the node as eligible or not,
+	// respectively, for receiving allocations. This is orthoginal to the node
+	// status being ready.
+	NodeSchedulingEligible   = "eligible"
+	NodeSchedulingIneligible = "ineligible"
 )
 
 // Nodes is used to query node-related API endpoints
@@ -68,7 +79,7 @@ type NodeDrainUpdateResponse struct {
 
 // UpdateDrain is used to update the drain strategy for a given node. If
 // markEligible is true and the drain is being removed, the node will be marked
-// as having its scheduling being elibile
+// as having its scheduling being eligible
 func (n *Nodes) UpdateDrain(nodeID string, spec *DrainSpec, markEligible bool, q *WriteOptions) (*NodeDrainUpdateResponse, error) {
 	req := &NodeUpdateDrainRequest{
 		NodeID:       nodeID,
@@ -122,9 +133,9 @@ func (n *Nodes) MonitorDrain(ctx context.Context, nodeID string, index uint64, i
 	allocCh := make(chan *MonitorMessage, 8)
 
 	// Multiplex node and alloc chans onto outCh. This goroutine closes
-	// outCh when other chans have been closed or context canceled.
+	// outCh when other chans have been closed.
 	multiplexCtx, cancel := context.WithCancel(ctx)
-	go n.monitorDrainMultiplex(ctx, cancel, outCh, nodeCh, allocCh)
+	go n.monitorDrainMultiplex(multiplexCtx, cancel, outCh, nodeCh, allocCh)
 
 	// Monitor node for updates
 	go n.monitorDrainNode(multiplexCtx, nodeID, index, nodeCh)
@@ -158,12 +169,14 @@ func (n *Nodes) monitorDrainMultiplex(ctx context.Context, cancel func(),
 			if !nodeOk {
 				// nil chan to prevent further recvs
 				nodeCh = nil
+				continue
 			}
 
 		case msg, allocOk = <-allocCh:
 			if !allocOk {
 				// nil chan to prevent further recvs
 				allocCh = nil
+				continue
 			}
 
 		case <-ctx.Done():
@@ -189,7 +202,9 @@ func (n *Nodes) monitorDrainMultiplex(ctx context.Context, cancel func(),
 
 // monitorDrainNode emits node updates on nodeCh and closes the channel when
 // the node has finished draining.
-func (n *Nodes) monitorDrainNode(ctx context.Context, nodeID string, index uint64, nodeCh chan<- *MonitorMessage) {
+func (n *Nodes) monitorDrainNode(ctx context.Context, nodeID string,
+	index uint64, nodeCh chan<- *MonitorMessage) {
+
 	defer close(nodeCh)
 
 	var lastStrategy *DrainStrategy
@@ -209,7 +224,8 @@ func (n *Nodes) monitorDrainNode(ctx context.Context, nodeID string, index uint6
 		}
 
 		if node.DrainStrategy == nil {
-			msg := Messagef(MonitorMsgLevelInfo, "Node %q drain complete", nodeID)
+			var msg *MonitorMessage
+			msg = Messagef(MonitorMsgLevelInfo, "Drain complete for node %s", nodeID)
 			select {
 			case nodeCh <- msg:
 			case <-ctx.Done():
@@ -217,7 +233,7 @@ func (n *Nodes) monitorDrainNode(ctx context.Context, nodeID string, index uint6
 			return
 		}
 
-		if node.Status == structs.NodeStatusDown {
+		if node.Status == NodeStatusDown {
 			msg := Messagef(MonitorMsgLevelWarn, "Node %q down", nodeID)
 			select {
 			case nodeCh <- msg:
@@ -288,7 +304,7 @@ func (n *Nodes) monitorDrainAllocs(ctx context.Context, nodeID string, ignoreSys
 				// Alloc was marked for migration
 				msg = "marked for migration"
 
-			case migrating && (orig.DesiredStatus != a.DesiredStatus) && a.DesiredStatus == structs.AllocDesiredStatusStop:
+			case migrating && (orig.DesiredStatus != a.DesiredStatus) && a.DesiredStatus == AllocDesiredStatusStop:
 				// Alloc has already been marked for migration and is now being stopped
 				msg = "draining"
 			}
@@ -307,12 +323,12 @@ func (n *Nodes) monitorDrainAllocs(ctx context.Context, nodeID string, ignoreSys
 			}
 
 			// Track how many allocs are still running
-			if ignoreSys && a.Job.Type != nil && *a.Job.Type == structs.JobTypeSystem {
+			if ignoreSys && a.Job.Type != nil && *a.Job.Type == JobTypeSystem {
 				continue
 			}
 
 			switch a.ClientStatus {
-			case structs.AllocClientStatusPending, structs.AllocClientStatusRunning:
+			case AllocClientStatusPending, AllocClientStatusRunning:
 				runningAllocs++
 			}
 		}
@@ -346,9 +362,9 @@ type NodeEligibilityUpdateResponse struct {
 
 // ToggleEligibility is used to update the scheduling eligibility of the node
 func (n *Nodes) ToggleEligibility(nodeID string, eligible bool, q *WriteOptions) (*NodeEligibilityUpdateResponse, error) {
-	e := structs.NodeSchedulingEligible
+	e := NodeSchedulingEligible
 	if !eligible {
-		e = structs.NodeSchedulingIneligible
+		e = NodeSchedulingIneligible
 	}
 
 	req := &NodeUpdateEligibilityRequest{
@@ -392,6 +408,7 @@ func (n *Nodes) Stats(nodeID string, q *QueryOptions) (*HostStats, error) {
 	if _, err := n.client.query(path, &resp, q); err != nil {
 		return nil, err
 	}
+
 	return &resp, nil
 }
 
@@ -429,6 +446,8 @@ type Node struct {
 	Attributes            map[string]string
 	Resources             *Resources
 	Reserved              *Resources
+	NodeResources         *NodeResources
+	ReservedResources     *NodeReservedResources
 	Links                 map[string]string
 	Meta                  map[string]string
 	NodeClass             string
@@ -442,6 +461,49 @@ type Node struct {
 	Drivers               map[string]*DriverInfo
 	CreateIndex           uint64
 	ModifyIndex           uint64
+}
+
+type NodeResources struct {
+	Cpu      NodeCpuResources
+	Memory   NodeMemoryResources
+	Disk     NodeDiskResources
+	Networks []*NetworkResource
+	Devices  []*NodeDeviceResource
+}
+
+type NodeCpuResources struct {
+	CpuShares int64
+}
+
+type NodeMemoryResources struct {
+	MemoryMB int64
+}
+
+type NodeDiskResources struct {
+	DiskMB int64
+}
+
+type NodeReservedResources struct {
+	Cpu      NodeReservedCpuResources
+	Memory   NodeReservedMemoryResources
+	Disk     NodeReservedDiskResources
+	Networks NodeReservedNetworkResources
+}
+
+type NodeReservedCpuResources struct {
+	CpuShares uint64
+}
+
+type NodeReservedMemoryResources struct {
+	MemoryMB uint64
+}
+
+type NodeReservedDiskResources struct {
+	DiskMB uint64
+}
+
+type NodeReservedNetworkResources struct {
+	ReservedHostPorts string
 }
 
 // DrainStrategy describes a Node's drain behavior.
@@ -512,6 +574,7 @@ type HostStats struct {
 	Memory           *HostMemoryStats
 	CPU              []*HostCPUStats
 	DiskStats        []*HostDiskStats
+	DeviceStats      []*DeviceGroupStats
 	Uptime           uint64
 	CPUTicksConsumed float64
 }
@@ -540,6 +603,98 @@ type HostDiskStats struct {
 	InodesUsedPercent float64
 }
 
+// DeviceGroupStats contains statistics for each device of a particular
+// device group, identified by the vendor, type and name of the device.
+type DeviceGroupStats struct {
+	Vendor string
+	Type   string
+	Name   string
+
+	// InstanceStats is a mapping of each device ID to its statistics.
+	InstanceStats map[string]*DeviceStats
+}
+
+// DeviceStats is the statistics for an individual device
+type DeviceStats struct {
+	// Summary exposes a single summary metric that should be the most
+	// informative to users.
+	Summary *StatValue
+
+	// Stats contains the verbose statistics for the device.
+	Stats *StatObject
+
+	// Timestamp is the time the statistics were collected.
+	Timestamp time.Time
+}
+
+// StatObject is a collection of statistics either exposed at the top
+// level or via nested StatObjects.
+type StatObject struct {
+	// Nested is a mapping of object name to a nested stats object.
+	Nested map[string]*StatObject
+
+	// Attributes is a mapping of statistic name to its value.
+	Attributes map[string]*StatValue
+}
+
+// StatValue exposes the values of a particular statistic. The value may be of
+// type float, integer, string or boolean. Numeric types can be exposed as a
+// single value or as a fraction.
+type StatValue struct {
+	// FloatNumeratorVal exposes a floating point value. If denominator is set
+	// it is assumed to be a fractional value, otherwise it is a scalar.
+	FloatNumeratorVal   *float64 `json:",omitempty"`
+	FloatDenominatorVal *float64 `json:",omitempty"`
+
+	// IntNumeratorVal exposes a int value. If denominator is set it is assumed
+	// to be a fractional value, otherwise it is a scalar.
+	IntNumeratorVal   *int64 `json:",omitempty"`
+	IntDenominatorVal *int64 `json:",omitempty"`
+
+	// StringVal exposes a string value. These are likely annotations.
+	StringVal *string `json:",omitempty"`
+
+	// BoolVal exposes a boolean statistic.
+	BoolVal *bool `json:",omitempty"`
+
+	// Unit gives the unit type: °F, %, MHz, MB, etc.
+	Unit string `json:",omitempty"`
+
+	// Desc provides a human readable description of the statistic.
+	Desc string `json:",omitempty"`
+}
+
+func (v *StatValue) String() string {
+	switch {
+	case v.BoolVal != nil:
+		return strconv.FormatBool(*v.BoolVal)
+	case v.StringVal != nil:
+		return *v.StringVal
+	case v.FloatNumeratorVal != nil:
+		str := formatFloat(*v.FloatNumeratorVal, 3)
+		if v.FloatDenominatorVal != nil {
+			str += " / " + formatFloat(*v.FloatDenominatorVal, 3)
+		}
+
+		if v.Unit != "" {
+			str += " " + v.Unit
+		}
+		return str
+	case v.IntNumeratorVal != nil:
+		str := strconv.FormatInt(*v.IntNumeratorVal, 10)
+		if v.IntDenominatorVal != nil {
+			str += " / " + strconv.FormatInt(*v.IntDenominatorVal, 10)
+		}
+
+		if v.Unit != "" {
+			str += " " + v.Unit
+		}
+		return str
+	default:
+		return "<unknown>"
+	}
+}
+
 // NodeListStub is a subset of information returned during
 // node list operations.
 type NodeListStub struct {
@@ -553,6 +708,7 @@ type NodeListStub struct {
 	SchedulingEligibility string
 	Status                string
 	StatusDescription     string
+	Drivers               map[string]*DriverInfo
 	CreateIndex           uint64
 	ModifyIndex           uint64
 }
