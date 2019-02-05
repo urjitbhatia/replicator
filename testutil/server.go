@@ -10,9 +10,11 @@ import (
 // MakeClientWithConfig will be written by Eric.
 func MakeClientWithConfig(t *testing.T) (*structs.Config, *testutil.TestServer) {
 
-	srv1 := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
-		c.Bind = "127.0.0.1"
-	})
+	srv1, err := testutil.NewTestServer()
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	config := &structs.Config{
 		ConsulKeyRoot: "replicator/config",

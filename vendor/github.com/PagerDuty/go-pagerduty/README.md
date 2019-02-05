@@ -25,6 +25,12 @@ authtoken: fooBar
 `pd` command provides a single entrypoint for all the API endpoints, with individual
 API represented by their own sub commands. For an exhaustive list of sub-commands, try:
 
+__Install:__
+```
+cd $GOPATH/github.com/PagerDuty/go-pagerduty
+go build -o $GOPATH/bin/pd command/*
+```
+
 ```
 pd --help
 ```
@@ -60,6 +66,11 @@ func main() {
 	}
 }
 ```
+
+The PagerDuty API client also exposes its HTTP client as the `HTTPClient` field.
+If you need to use your own HTTP client, for doing things like defining your own
+transport settings, you can replace the default HTTP client with your own by
+simply by setting a new value in the `HTTPClient` field.
 
 ## License
 [Apache 2](http://www.apache.org/licenses/LICENSE-2.0)

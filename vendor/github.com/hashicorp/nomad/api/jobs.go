@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/gorhill/cronexpr"
-	"github.com/hashicorp/nomad/helper"
 )
 
 const (
@@ -17,6 +16,9 @@ const (
 
 	// JobTypeBatch indicates a short-lived process
 	JobTypeBatch = "batch"
+
+	// JobTypeSystem indicates a system process that should run on all clients
+	JobTypeSystem = "system"
 
 	// PeriodicSpecCron is used for a cron spec.
 	PeriodicSpecCron = "cron"
@@ -36,9 +38,31 @@ type Jobs struct {
 	client *Client
 }
 
+// JobsParseRequest is used for arguments of the /vi/jobs/parse endpoint
+type JobsParseRequest struct {
+	// JobHCL is an hcl jobspec
+	JobHCL string
+
+	// Canonicalize is a flag as to if the server should return default values
+	// for unset fields
+	Canonicalize bool
+}
+
 // Jobs returns a handle on the jobs endpoints.
 func (c *Client) Jobs() *Jobs {
 	return &Jobs{client: c}
+}
+
+// Parse is used to convert the HCL repesentation of a Job to JSON server side.
+// To parse the HCL client side see package github.com/hashicorp/nomad/jobspec
+func (j *Jobs) ParseHCL(jobHCL string, canonicalize bool) (*Job, error) {
+	var job Job
+	req := &JobsParseRequest{
+		JobHCL:       jobHCL,
+		Canonicalize: canonicalize,
+	}
+	_, err := j.client.write("/v1/jobs/parse", req, &job, nil)
+	return &job, err
 }
 
 func (j *Jobs) Validate(job *Job, q *WriteOptions) (*JobValidateResponse, *WriteMeta, error) {
@@ -210,6 +234,22 @@ func (j *Jobs) ForceEvaluate(jobID string, q *WriteOptions) (string, *WriteMeta,
 	return resp.EvalID, wm, nil
 }
 
+// EvaluateWithOpts is used to force-evaluate an existing job and takes additional options
+// for whether to force reschedule failed allocations
+func (j *Jobs) EvaluateWithOpts(jobID string, opts EvalOptions, q *WriteOptions) (string, *WriteMeta, error) {
+	req := &JobEvaluateRequest{
+		JobID:       jobID,
+		EvalOptions: opts,
+	}
+
+	var resp JobRegisterResponse
+	wm, err := j.client.write("/v1/job/"+jobID+"/evaluate", req, &resp, q)
+	if err != nil {
+		return "", nil, err
+	}
+	return resp.EvalID, wm, nil
+}
+
 // PeriodicForce spawns a new instance of the periodic job and returns the eval ID
 func (j *Jobs) PeriodicForce(jobID string, q *WriteOptions) (string, *WriteMeta, error) {
 	var resp periodicForceResponse
@@ -320,26 +360,28 @@ type periodicForceResponse struct {
 
 // UpdateStrategy defines a task groups update strategy.
 type UpdateStrategy struct {
-	Stagger         *time.Duration `mapstructure:"stagger"`
-	MaxParallel     *int           `mapstructure:"max_parallel"`
-	HealthCheck     *string        `mapstructure:"health_check"`
-	MinHealthyTime  *time.Duration `mapstructure:"min_healthy_time"`
-	HealthyDeadline *time.Duration `mapstructure:"healthy_deadline"`
-	AutoRevert      *bool          `mapstructure:"auto_revert"`
-	Canary          *int           `mapstructure:"canary"`
+	Stagger          *time.Duration `mapstructure:"stagger"`
+	MaxParallel      *int           `mapstructure:"max_parallel"`
+	HealthCheck      *string        `mapstructure:"health_check"`
+	MinHealthyTime   *time.Duration `mapstructure:"min_healthy_time"`
+	HealthyDeadline  *time.Duration `mapstructure:"healthy_deadline"`
+	ProgressDeadline *time.Duration `mapstructure:"progress_deadline"`
+	AutoRevert       *bool          `mapstructure:"auto_revert"`
+	Canary           *int           `mapstructure:"canary"`
 }
 
 // DefaultUpdateStrategy provides a baseline that can be used to upgrade
 // jobs with the old policy or for populating field defaults.
 func DefaultUpdateStrategy() *UpdateStrategy {
 	return &UpdateStrategy{
-		Stagger:         helper.TimeToPtr(30 * time.Second),
-		MaxParallel:     helper.IntToPtr(1),
-		HealthCheck:     helper.StringToPtr("checks"),
-		MinHealthyTime:  helper.TimeToPtr(10 * time.Second),
-		HealthyDeadline: helper.TimeToPtr(5 * time.Minute),
-		AutoRevert:      helper.BoolToPtr(false),
-		Canary:          helper.IntToPtr(0),
+		Stagger:          timeToPtr(30 * time.Second),
+		MaxParallel:      intToPtr(1),
+		HealthCheck:      stringToPtr("checks"),
+		MinHealthyTime:   timeToPtr(10 * time.Second),
+		HealthyDeadline:  timeToPtr(5 * time.Minute),
+		ProgressDeadline: timeToPtr(10 * time.Minute),
+		AutoRevert:       boolToPtr(false),
+		Canary:           intToPtr(0),
 	}
 }
 
@@ -351,31 +393,35 @@ func (u *UpdateStrategy) Copy() *UpdateStrategy {
 	copy := new(UpdateStrategy)
 
 	if u.Stagger != nil {
-		copy.Stagger = helper.TimeToPtr(*u.Stagger)
+		copy.Stagger = timeToPtr(*u.Stagger)
 	}
 
 	if u.MaxParallel != nil {
-		copy.MaxParallel = helper.IntToPtr(*u.MaxParallel)
+		copy.MaxParallel = intToPtr(*u.MaxParallel)
 	}
 
 	if u.HealthCheck != nil {
-		copy.HealthCheck = helper.StringToPtr(*u.HealthCheck)
+		copy.HealthCheck = stringToPtr(*u.HealthCheck)
 	}
 
 	if u.MinHealthyTime != nil {
-		copy.MinHealthyTime = helper.TimeToPtr(*u.MinHealthyTime)
+		copy.MinHealthyTime = timeToPtr(*u.MinHealthyTime)
 	}
 
 	if u.HealthyDeadline != nil {
-		copy.HealthyDeadline = helper.TimeToPtr(*u.HealthyDeadline)
+		copy.HealthyDeadline = timeToPtr(*u.HealthyDeadline)
+	}
+
+	if u.ProgressDeadline != nil {
+		copy.ProgressDeadline = timeToPtr(*u.ProgressDeadline)
 	}
 
 	if u.AutoRevert != nil {
-		copy.AutoRevert = helper.BoolToPtr(*u.AutoRevert)
+		copy.AutoRevert = boolToPtr(*u.AutoRevert)
 	}
 
 	if u.Canary != nil {
-		copy.Canary = helper.IntToPtr(*u.Canary)
+		copy.Canary = intToPtr(*u.Canary)
 	}
 
 	return copy
@@ -387,31 +433,35 @@ func (u *UpdateStrategy) Merge(o *UpdateStrategy) {
 	}
 
 	if o.Stagger != nil {
-		u.Stagger = helper.TimeToPtr(*o.Stagger)
+		u.Stagger = timeToPtr(*o.Stagger)
 	}
 
 	if o.MaxParallel != nil {
-		u.MaxParallel = helper.IntToPtr(*o.MaxParallel)
+		u.MaxParallel = intToPtr(*o.MaxParallel)
 	}
 
 	if o.HealthCheck != nil {
-		u.HealthCheck = helper.StringToPtr(*o.HealthCheck)
+		u.HealthCheck = stringToPtr(*o.HealthCheck)
 	}
 
 	if o.MinHealthyTime != nil {
-		u.MinHealthyTime = helper.TimeToPtr(*o.MinHealthyTime)
+		u.MinHealthyTime = timeToPtr(*o.MinHealthyTime)
 	}
 
 	if o.HealthyDeadline != nil {
-		u.HealthyDeadline = helper.TimeToPtr(*o.HealthyDeadline)
+		u.HealthyDeadline = timeToPtr(*o.HealthyDeadline)
+	}
+
+	if o.ProgressDeadline != nil {
+		u.ProgressDeadline = timeToPtr(*o.ProgressDeadline)
 	}
 
 	if o.AutoRevert != nil {
-		u.AutoRevert = helper.BoolToPtr(*o.AutoRevert)
+		u.AutoRevert = boolToPtr(*o.AutoRevert)
 	}
 
 	if o.Canary != nil {
-		u.Canary = helper.IntToPtr(*o.Canary)
+		u.Canary = intToPtr(*o.Canary)
 	}
 }
 
@@ -432,6 +482,10 @@ func (u *UpdateStrategy) Canonicalize() {
 
 	if u.HealthyDeadline == nil {
 		u.HealthyDeadline = d.HealthyDeadline
+	}
+
+	if u.ProgressDeadline == nil {
+		u.ProgressDeadline = d.ProgressDeadline
 	}
 
 	if u.MinHealthyTime == nil {
@@ -473,6 +527,10 @@ func (u *UpdateStrategy) Empty() bool {
 		return false
 	}
 
+	if u.ProgressDeadline != nil && *u.ProgressDeadline != 0 {
+		return false
+	}
+
 	if u.AutoRevert != nil && *u.AutoRevert {
 		return false
 	}
@@ -495,19 +553,19 @@ type PeriodicConfig struct {
 
 func (p *PeriodicConfig) Canonicalize() {
 	if p.Enabled == nil {
-		p.Enabled = helper.BoolToPtr(true)
+		p.Enabled = boolToPtr(true)
 	}
 	if p.Spec == nil {
-		p.Spec = helper.StringToPtr("")
+		p.Spec = stringToPtr("")
 	}
 	if p.SpecType == nil {
-		p.SpecType = helper.StringToPtr(PeriodicSpecCron)
+		p.SpecType = stringToPtr(PeriodicSpecCron)
 	}
 	if p.ProhibitOverlap == nil {
-		p.ProhibitOverlap = helper.BoolToPtr(false)
+		p.ProhibitOverlap = boolToPtr(false)
 	}
 	if p.TimeZone == nil || *p.TimeZone == "" {
-		p.TimeZone = helper.StringToPtr("UTC")
+		p.TimeZone = stringToPtr("UTC")
 	}
 }
 
@@ -515,16 +573,30 @@ func (p *PeriodicConfig) Canonicalize() {
 // passed time. If no matching instance exists, the zero value of time.Time is
 // returned. The `time.Location` of the returned value matches that of the
 // passed time.
-func (p *PeriodicConfig) Next(fromTime time.Time) time.Time {
+func (p *PeriodicConfig) Next(fromTime time.Time) (time.Time, error) {
 	if *p.SpecType == PeriodicSpecCron {
 		if e, err := cronexpr.Parse(*p.Spec); err == nil {
-			return e.Next(fromTime)
+			return cronParseNext(e, fromTime, *p.Spec)
 		}
 	}
 
-	return time.Time{}
+	return time.Time{}, nil
 }
 
+// cronParseNext is a helper that parses the next time for the given expression
+// but captures any panic that may occur in the underlying library.
+// ---  THIS FUNCTION IS REPLICATED IN nomad/structs/structs.go
+// and should be kept in sync.
+func cronParseNext(e *cronexpr.Expression, fromTime time.Time, spec string) (t time.Time, err error) {
+	defer func() {
+		if recover() != nil {
+			t = time.Time{}
+			err = fmt.Errorf("failed parsing cron expression: %q", spec)
+		}
+	}()
+
+	return e.Next(fromTime), nil
+}
 func (p *PeriodicConfig) GetLocation() (*time.Location, error) {
 	if p.TimeZone == nil || *p.TimeZone == "" {
 		return time.UTC, nil
@@ -553,10 +625,13 @@ type Job struct {
 	AllAtOnce         *bool `mapstructure:"all_at_once"`
 	Datacenters       []string
 	Constraints       []*Constraint
+	Affinities        []*Affinity
 	TaskGroups        []*TaskGroup
 	Update            *UpdateStrategy
+	Spreads           []*Spread
 	Periodic          *PeriodicConfig
 	ParameterizedJob  *ParameterizedJobConfig
+	Dispatched        bool
 	Payload           []byte
 	Reschedule        *ReschedulePolicy
 	Migrate           *MigrateStrategy
@@ -579,63 +654,63 @@ func (j *Job) IsPeriodic() bool {
 
 // IsParameterized returns whether a job is parameterized job.
 func (j *Job) IsParameterized() bool {
-	return j.ParameterizedJob != nil
+	return j.ParameterizedJob != nil && !j.Dispatched
 }
 
 func (j *Job) Canonicalize() {
 	if j.ID == nil {
-		j.ID = helper.StringToPtr("")
+		j.ID = stringToPtr("")
 	}
 	if j.Name == nil {
-		j.Name = helper.StringToPtr(*j.ID)
+		j.Name = stringToPtr(*j.ID)
 	}
 	if j.ParentID == nil {
-		j.ParentID = helper.StringToPtr("")
+		j.ParentID = stringToPtr("")
 	}
 	if j.Namespace == nil {
-		j.Namespace = helper.StringToPtr(DefaultNamespace)
+		j.Namespace = stringToPtr(DefaultNamespace)
 	}
 	if j.Priority == nil {
-		j.Priority = helper.IntToPtr(50)
+		j.Priority = intToPtr(50)
 	}
 	if j.Stop == nil {
-		j.Stop = helper.BoolToPtr(false)
+		j.Stop = boolToPtr(false)
 	}
 	if j.Region == nil {
-		j.Region = helper.StringToPtr("global")
+		j.Region = stringToPtr("global")
 	}
 	if j.Namespace == nil {
-		j.Namespace = helper.StringToPtr("default")
+		j.Namespace = stringToPtr("default")
 	}
 	if j.Type == nil {
-		j.Type = helper.StringToPtr("service")
+		j.Type = stringToPtr("service")
 	}
 	if j.AllAtOnce == nil {
-		j.AllAtOnce = helper.BoolToPtr(false)
+		j.AllAtOnce = boolToPtr(false)
 	}
 	if j.VaultToken == nil {
-		j.VaultToken = helper.StringToPtr("")
+		j.VaultToken = stringToPtr("")
 	}
 	if j.Status == nil {
-		j.Status = helper.StringToPtr("")
+		j.Status = stringToPtr("")
 	}
 	if j.StatusDescription == nil {
-		j.StatusDescription = helper.StringToPtr("")
+		j.StatusDescription = stringToPtr("")
 	}
 	if j.Stable == nil {
-		j.Stable = helper.BoolToPtr(false)
+		j.Stable = boolToPtr(false)
 	}
 	if j.Version == nil {
-		j.Version = helper.Uint64ToPtr(0)
+		j.Version = uint64ToPtr(0)
 	}
 	if j.CreateIndex == nil {
-		j.CreateIndex = helper.Uint64ToPtr(0)
+		j.CreateIndex = uint64ToPtr(0)
 	}
 	if j.ModifyIndex == nil {
-		j.ModifyIndex = helper.Uint64ToPtr(0)
+		j.ModifyIndex = uint64ToPtr(0)
 	}
 	if j.JobModifyIndex == nil {
-		j.JobModifyIndex = helper.Uint64ToPtr(0)
+		j.JobModifyIndex = uint64ToPtr(0)
 	}
 	if j.Periodic != nil {
 		j.Periodic.Canonicalize()
@@ -646,6 +721,13 @@ func (j *Job) Canonicalize() {
 
 	for _, tg := range j.TaskGroups {
 		tg.Canonicalize(j)
+	}
+
+	for _, spread := range j.Spreads {
+		spread.Canonicalize()
+	}
+	for _, a := range j.Affinities {
+		a.Canonicalize()
 	}
 }
 
@@ -703,6 +785,7 @@ type JobListStub struct {
 	ID                string
 	ParentID          string
 	Name              string
+	Datacenters       []string
 	Type              string
 	Priority          int
 	Periodic          bool
@@ -778,6 +861,12 @@ func (j *Job) Constrain(c *Constraint) *Job {
 	return j
 }
 
+// AddAffinity is used to add an affinity to a job.
+func (j *Job) AddAffinity(a *Affinity) *Job {
+	j.Affinities = append(j.Affinities, a)
+	return j
+}
+
 // AddTaskGroup adds a task group to an existing job.
 func (j *Job) AddTaskGroup(grp *TaskGroup) *Job {
 	j.TaskGroups = append(j.TaskGroups, grp)
@@ -787,6 +876,11 @@ func (j *Job) AddTaskGroup(grp *TaskGroup) *Job {
 // AddPeriodicConfig adds a periodic config to an existing job.
 func (j *Job) AddPeriodicConfig(cfg *PeriodicConfig) *Job {
 	j.Periodic = cfg
+	return j
+}
+
+func (j *Job) AddSpread(s *Spread) *Job {
+	j.Spreads = append(j.Spreads, s)
 	return j
 }
 
@@ -942,6 +1036,7 @@ type ObjectDiff struct {
 
 type PlanAnnotations struct {
 	DesiredTGUpdates map[string]*DesiredUpdates
+	PreemptedAllocs  []*AllocationListStub
 }
 
 type DesiredUpdates struct {
@@ -952,6 +1047,7 @@ type DesiredUpdates struct {
 	InPlaceUpdate     uint64
 	DestructiveUpdate uint64
 	Canary            uint64
+	Preemptions       uint64
 }
 
 type JobDispatchRequest struct {
@@ -990,4 +1086,16 @@ type JobStabilityRequest struct {
 type JobStabilityResponse struct {
 	JobModifyIndex uint64
 	WriteMeta
+}
+
+// JobEvaluateRequest is used when we just need to re-evaluate a target job
+type JobEvaluateRequest struct {
+	JobID       string
+	EvalOptions EvalOptions
+	WriteRequest
+}
+
+// EvalOptions is used to encapsulate options when forcing a job evaluation
+type EvalOptions struct {
+	ForceReschedule bool
 }
