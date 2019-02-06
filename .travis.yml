@@ -19,6 +19,8 @@ notifications:
 deploy:
   provider: releases
   go: 1.11.x
+  api_key:
+    secure: WWhfOMhGaM0BJKg9mwuIy+upFlguGMOKRSZ6sPvhS4CKGUSfcj3GSWWdxISJGRD2pisiZiP4d6zzAKUpFVIMI0HZKAWAYTutTecXcqUzNUrqillp6Yo0PCTUW1nzVnE7+Ss0VNDbZzeJOwckXtQepjyuRo2A3eP44rlJuiUa6FF6ltrOeXYYwADXlX0DrLidQu3gIFvoDiAvoKPPX7Q34SIxnEc8q+i781bg10+yLJHHoxayg3wDXq9UemdbQ8gizuvv5x9P/nCVhsrb6ktT3cskIXb5B7SupfvBDbqlP7ztpDI0PFtl4sM4AK+xIGydQlgM0/PcIZwmc7xqmP0xlGntpwjAZtmwsFabCOVDL59pr5tHaRKQXhqV2GsIK1ssBq9Z/EyDppkEzKXPVLT0Qin4pTgncH6aRkxEJgrjU4kDA4okmguUnSaKFgKxCIGAilVVgO/pa+Bs67XdMuqZhGvndnW08W2/4iObgbqPBCiaK/CO4/MUCPvFZ3kUTK87cCNFD8NyrGP0SsYrDEqS4KV/FvnWP8G3umXC5o6zbgmYCjFZ06qd6L/KWeRlSs8rU2PRZZIyqMUcaQWnprQyPQP9KuyHvliY7GlzYLCPq//greAUnLtqwuKeUdVIDH+2gX0AypgQYqXp+COGqtbn3LaDDe6cWK86M+qyl/mjPyI=
   file:
     - pkg/darwin-386-replicator
     - pkg/darwin-amd64-replicator
@@ -28,6 +30,7 @@ deploy:
     - pkg/linux-386-replicator
     - pkg/linux-amd64-replicator
     - pkg/linux-arm-replicator
-  skip_cleanup: true
   on:
+    repo: urjitbhatia/replicator
     tags: true
+  skip_cleanup: true
