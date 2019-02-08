@@ -9,7 +9,7 @@ FROM alpine:edge
 LABEL maintainer Urjit Singh Bhatia<(urjitsinghbhatia@gmail.com> (@urjitbhatia)
 LABEL documentation "https://github.com/urjitbhatia/replicator"
 
-ENV REPLICATOR_VERSION v2.0.0-beta
+ENV REPLICATOR_VERSION v2.0.1-beta
 
 WORKDIR /usr/local/bin/
 
