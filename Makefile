@@ -28,7 +28,7 @@ lint:
 
 test: fmt lint vet
 	@echo "==> Running $@..."
-	@go test -v -tags "$(BUILDTAGS) cgo" $(shell go list ./... | grep -v vendor)
+	@go test -race -v -tags "$(BUILDTAGS) cgo" $(shell go list ./... | grep -v vendor)
 
 vet:
 	@echo "==> Running $@..."
