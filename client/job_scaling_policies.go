@@ -235,9 +235,7 @@ func RemoveJobScalingPolicy(jobName string, scaling *structs.JobScalingPolicies)
 	defer scaling.Lock.Unlock()
 
 	if _, ok := scaling.Policies[jobName]; ok {
-		scaling.Lock.Lock()
 		delete(scaling.Policies, jobName)
-		scaling.Lock.Unlock()
 		logging.Info("client/job_scaling_policies: deleted job scaling entries for job %v", jobName)
 	}
 }
