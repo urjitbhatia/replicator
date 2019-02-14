@@ -17,7 +17,7 @@ LABEL maintainer Urjit Singh Bhatia<(urjitsinghbhatia@gmail.com> (@urjitbhatia)
 LABEL documentation "https://github.com/urjitbhatia/replicator"
 
 ENV APP_PATH /go/src/github.com/urjitbhatia/replicator
-ENV REPLICATOR_VERSION v2.0.1-beta
+ENV REPLICATOR_VERSION v2.1.0
 
 WORKDIR /usr/local/bin/
 
