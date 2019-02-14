@@ -177,6 +177,7 @@ func updateScalingPolicy(jobName, groupName string, groupMeta map[string]string,
 	// If the job already has an entry in the scaling policies, attempt to find
 	// the group and overwrite with the new policy. If the job is found, but no
 	// group policy is found we append the new group policy to the job.
+	logging.Info("client/job_scaling_policies: inspecting %d existing policies for job %s", len(s.Policies[jobName]), jobName)
 	if val, ok := s.Policies[jobName]; ok {
 		for i, group := range val {
 			if group.GroupName == groupName {
@@ -193,12 +194,7 @@ func updateScalingPolicy(jobName, groupName string, groupMeta map[string]string,
 				val[i] = result
 				logging.Info("client/job_scaling_policies: updated scaling policy for job %s and group %s",
 					jobName, groupName)
-
-			} else {
-				s.Policies[jobName] = append(s.Policies[jobName], result)
-				logging.Info("client/job_scaling_policies: added new scaling policy for job %s and group %s",
-					jobName, groupName)
-				found = true
+				break
 			}
 		}
 	}
@@ -235,6 +231,9 @@ func removeGroupScalingPolicy(jobName, groupName string, scaling *structs.JobSca
 
 // RemoveJobScalingPolicy deletes the job entry within the the policies map.
 func RemoveJobScalingPolicy(jobName string, scaling *structs.JobScalingPolicies) {
+	scaling.Lock.Lock()
+	defer scaling.Lock.Unlock()
+
 	if _, ok := scaling.Policies[jobName]; ok {
 		scaling.Lock.Lock()
 		delete(scaling.Policies, jobName)
