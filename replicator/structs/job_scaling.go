@@ -26,9 +26,11 @@ type JobScalingPolicies struct {
 // GroupScalingPolicy represents all the information needed to make
 // JobTaskGroup scaling decisions.
 type GroupScalingPolicy struct {
-	Cooldown       time.Duration `mapstructure:"replicator_cooldown"`
-	Enabled        bool          `mapstructure:"replicator_enabled"`
-	RetryThreshold int           `mapstructure:"replicator_retry_threshold"`
+	Cooldown        time.Duration `mapstructure:"replicator_cooldown"`
+	ScaleInCooldown time.Duration `mapstructure:"replicator_scalein_cooldown"`
+
+	Enabled        bool `mapstructure:"replicator_enabled"`
+	RetryThreshold int  `mapstructure:"replicator_retry_threshold"`
 	GroupName      string
 	Max            int            `mapstructure:"replicator_max"`
 	Min            int            `mapstructure:"replicator_min"`

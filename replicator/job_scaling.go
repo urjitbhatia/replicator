@@ -126,11 +126,16 @@ func (s *Server) jobScaling(id int, jobs <-chan string,
 				}
 
 				// Check the JobGroup scaling cooldown.
-				cd := time.Duration(group.Cooldown) * time.Second
+				now := time.Now()
+				cooldown := group.Cooldown
+				if group.ScaleDirection == client.ScalingDirectionIn &&
+					group.ScaleInCooldown != time.Duration(0) {
+					cooldown = group.ScaleInCooldown
+				}
 
-				if !state.LastScalingEvent.Before(time.Now().Add(-cd)) {
+				if now.Sub(state.LastScalingEvent) < cooldown {
 					logging.Debug("core/job_scaling: job \"%v\" and group \"%v\" has not reached scaling cooldown threshold of %s",
-						jobName, group.GroupName, cd)
+						jobName, group.GroupName, cooldown)
 					continue
 				}
 
