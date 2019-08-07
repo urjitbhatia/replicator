@@ -423,7 +423,7 @@ func MaxAllowedClusterUtilization(capacity *structs.ClusterCapacity, nodeFaultTo
 		capacity.ScalingMetric, capacity.UsedCapacity.CPUMHz, capacity.UsedCapacity.MemoryMB)
 	logging.Debug("client/nomad: Scaling Metric (Algorithm): %v, Average Node Capacity: %v, "+
 		"Job Scaling Overhead: %v Reserved Capacity: %v",
-		internalScalingMetric, allocTotal, scalingReserve)
+		internalScalingMetric, nodeAvgAlloc, allocTotal, scalingReserve)
 
 	// see: https://github.com/elsevier-core-engineering/replicator/pull/275/files
 	// maxAllowedUtilization = ((capacityTotal - allocTotal) - (nodeAvgAlloc * nodeFaultTolerance))
