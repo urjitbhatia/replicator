@@ -4,8 +4,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 	nomad "github.com/hashicorp/nomad/api"
+
+	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 )
 
 func TestJobScalingPolicies_updateScalingPolicy(t *testing.T) {

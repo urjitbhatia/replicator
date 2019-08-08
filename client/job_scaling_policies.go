@@ -1,6 +1,8 @@
 package client
 
 import (
+	"reflect"
+	"strconv"
 	"time"
 
 	nomad "github.com/hashicorp/nomad/api"
@@ -144,6 +146,30 @@ func (c *nomadClient) jobScalingPolicyProcessor(jobID string, scaling *structs.J
 	}
 }
 
+// stringToTimeDurationHook wraps original mapstructure DecodeHookFunc because the
+// original implementation of replicator has a bug where cooldown is a time.Duration
+// time.Duration is measured in nanosec by default. However, the documentation said `sec`
+// In order to deploy this version without breaking existing job configs, we will fallback to
+// old behaviour. Therefore, both "20s" and "20" work. The latter will default to ns
+func stringToTimeDurationHook() mapstructure.DecodeHookFunc {
+	origFunc := mapstructure.StringToTimeDurationHookFunc()
+	return func(
+		f reflect.Type,
+		t reflect.Type,
+		data interface{}) (interface{}, error) {
+		val, err := mapstructure.DecodeHookExec(origFunc, f, t, data)
+		if err != nil {
+			// assume ns :shrug:
+			dataInt, err := strconv.Atoi(data.(string))
+			if err != nil {
+				return nil, err
+			}
+			return time.Duration(dataInt), nil
+		}
+		return val, err
+	}
+}
+
 // updateScalingPolicy takes a JobGroups meta parameter and updates Replicators
 // JobScaling entry if required.
 func updateScalingPolicy(jobName, groupName string, groupMeta map[string]string,
@@ -157,6 +183,7 @@ func updateScalingPolicy(jobName, groupName string, groupMeta map[string]string,
 	// to differ from this.
 	decodeConf := &mapstructure.DecoderConfig{
 		WeaklyTypedInput: true,
+		DecodeHook:       stringToTimeDurationHook(),
 		Result:           result,
 	}
 	decoder, err := mapstructure.NewDecoder(decodeConf)
