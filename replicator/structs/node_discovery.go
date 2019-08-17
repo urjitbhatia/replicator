@@ -44,7 +44,7 @@ type NodeRegistry struct {
 // WorkerPool represents the scaling configuration of a discovered
 // worker pool and its associated node membership.
 type WorkerPool struct {
-	Cooldown          int                    `mapstructure:"replicator_cooldown"`
+	Cooldown          time.Duration          `mapstructure:"replicator_cooldown"`
 	FaultTolerance    int                    `mapstructure:"replicator_node_fault_tolerance"`
 	Name              string                 `mapstructure:"replicator_worker_pool"`
 	NodeRegistrations map[string]time.Time   `hash:"ignore"`
