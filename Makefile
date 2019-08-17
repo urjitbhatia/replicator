@@ -53,4 +53,4 @@ install:
 
 release:
 	@echo "==> Running $@..."
-	./scripts/build.sh
+	goreleaser --rm-dist
