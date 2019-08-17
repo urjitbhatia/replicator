@@ -298,8 +298,7 @@ func checkCooldownThreshold(workerPool *structs.WorkerPool) bool {
 	}
 
 	// Calculate the cooldown threshold.
-	cooldown := workerPool.State.LastScalingEvent.Add(
-		time.Duration(workerPool.Cooldown) * time.Second)
+	cooldown := workerPool.State.LastScalingEvent.Add(workerPool.Cooldown)
 
 	if time.Now().Before(cooldown) {
 		logging.Debug("core/cluster_scaling: cluster scaling cooldown threshold "+
