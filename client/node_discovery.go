@@ -203,6 +203,7 @@ func ProcessNodeConfig(node *nomad.Node,
 	// Setup configuration for our structure decoder.
 	decoderConfig := &mapstructure.DecoderConfig{
 		WeaklyTypedInput: true,
+		DecodeHook:       stringToTimeDurationHook(),
 		Result:           result,
 	}
 
