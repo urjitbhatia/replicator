@@ -245,9 +245,9 @@ func (c *nomadClient) ClusterScalingSafe(capacity *structs.ClusterCapacity,
 
 	switch capacity.ScalingMetric.Type {
 	case ScalingMetricProcessor:
-		poolUsedCapacity = capacity.UsedCapacity.CPUMHz
+		poolUsedCapacity = capacity.TaskAllocation.CPUMHz
 	case ScalingMetricMemory:
-		poolUsedCapacity = capacity.UsedCapacity.MemoryMB
+		poolUsedCapacity = capacity.TaskAllocation.MemoryMB
 	}
 
 	if capacity.ScalingDirection == ScalingDirectionIn {
