@@ -5,7 +5,7 @@ FROM alpine:edge
 LABEL maintainer Urjit Singh Bhatia<(urjitsinghbhatia@gmail.com> (github: @urjitbhatia)
 LABEL documentation "https://github.com/urjitbhatia/replicator"
 
-ARG REPLICATOR_VERSION=v2.2.3
+ARG REPLICATOR_VERSION=v2.2.4
 
 WORKDIR /usr/local/bin/
 
