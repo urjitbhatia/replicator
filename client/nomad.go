@@ -394,7 +394,7 @@ func (c *nomadClient) GetAllocationStats(allocation *nomad.Allocation, scalingPo
 // MaxAllowedClusterUtilization calculates the maximum allowed cluster utilization after
 // taking into consideration node fault-tolerance and scaling overhead.
 func MaxAllowedClusterUtilization(capacity *structs.ClusterCapacity, nodeFaultTolerance int, scaleIn bool) (maxAllowedUtilization int) {
-	var allocTotal, capacityTotal, scalingReserve int
+	var allocTotal, capacityTotal, usedCapacity int
 	var internalScalingMetric string
 
 	// Use the cluster scaling metric when determining total cluster capacity
@@ -403,31 +403,54 @@ func MaxAllowedClusterUtilization(capacity *structs.ClusterCapacity, nodeFaultTo
 	case ScalingMetricMemory:
 		internalScalingMetric = ScalingMetricMemory
 		allocTotal = capacity.TaskAllocation.MemoryMB
-		scalingReserve = capacity.UsedCapacity.MemoryMB
+		usedCapacity = capacity.UsedCapacity.MemoryMB
 		capacityTotal = capacity.TotalCapacity.MemoryMB
 	default:
 		internalScalingMetric = ScalingMetricProcessor
 		allocTotal = capacity.TaskAllocation.CPUMHz
-		scalingReserve = capacity.UsedCapacity.CPUMHz
+		usedCapacity = capacity.UsedCapacity.CPUMHz
 		capacityTotal = capacity.TotalCapacity.CPUMHz
 	}
 
-	nodeAvgAlloc := capacityTotal / capacity.NodeCount
+	nodeAvgAlloc := usedCapacity / capacity.NodeCount
 	if scaleIn {
 		capacityTotal = capacityTotal - nodeAvgAlloc
 	}
 
 	logging.Debug("client/nomad: Cluster Capacity (CPU [MHz]: %v, Memory [MB]: %v)",
-		capacity.TotalCapacity.CPUMHz, capacity.TotalCapacity.MemoryMB)
+		capacity.TotalCapacity.CPUMHz,
+		capacity.TotalCapacity.MemoryMB)
 	logging.Debug("client/nomad: Cluster Utilization (Scaling Metric: %v, CPU [MHz]: %v, Memory [MB]: %v)",
-		capacity.ScalingMetric, capacity.UsedCapacity.CPUMHz, capacity.UsedCapacity.MemoryMB)
-	logging.Debug("client/nomad: Scaling Metric (Algorithm): %v, Average Node Capacity: %v, "+
-		"Job Scaling Overhead: %v Reserved Capacity: %v",
-		internalScalingMetric, nodeAvgAlloc, allocTotal, scalingReserve)
+		capacity.ScalingMetric,
+		capacity.UsedCapacity.CPUMHz,
+		capacity.UsedCapacity.MemoryMB)
+	logging.Debug("client/nomad: Scaling Metric (%v), Average Node Capacity: %v, "+
+		"Total allocation: %v Used Capacity: %v",
+		internalScalingMetric,
+		nodeAvgAlloc,
+		allocTotal,
+		usedCapacity)
 
-	// see: https://github.com/elsevier-core-engineering/replicator/pull/275/files
-	// maxAllowedUtilization = ((capacityTotal - allocTotal) - (nodeAvgAlloc * nodeFaultTolerance))
-	maxAllowedUtilization = ((capacityTotal - scalingReserve) - (nodeAvgAlloc * nodeFaultTolerance))
+	/*
+			Max allowed utilization calculation
+		                       +-----------------------+  Total Capacity
+		                       |    ||                 |
+		                       |    |------------------+  Overhead: 1 Task worth capacity for all jobs
+		Max Allowed Utilization|    ||                 |
+		                       |    ||                 |
+		                       +----||------------------+  Tolerance: 1 Node worth of average capacity
+		                            ||                 |
+		                            ||                 |
+									|------------------+  Current Utilization (Including allocations that are being placed)
+		                             |                 |
+		                             |                 |
+		                             |                 |
+		                             |                 |
+		                             |                 |
+		                             +-----------------+
+
+	*/
+	maxAllowedUtilization = ((capacityTotal - allocTotal) - (nodeAvgAlloc * nodeFaultTolerance))
 
 	return
 }

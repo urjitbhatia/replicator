@@ -102,9 +102,13 @@ func clusterScalingRequired(capacity *structs.ClusterCapacity,
 
 	logging.Debug("client/cluster_scaling: scaling requirements for worker pool "+
 		"%v: (Metric: %v, Direction: %v, Capacity: %v, Utilization: %v, Max "+
-		"Allowed: %v)", workerPool.Name, capacity.ScalingMetric,
-		capacity.ScalingDirection, capacity.ScalingMetric.Capacity,
-		capacity.ScalingMetric.Utilization, capacity.MaxAllowedUtilization)
+		"Allowed: %v)",
+		workerPool.Name,
+		capacity.ScalingMetric,
+		capacity.ScalingDirection,
+		capacity.ScalingMetric.Capacity,
+		capacity.ScalingMetric.Utilization,
+		capacity.MaxAllowedUtilization)
 
 	if capacity.ScalingDirection != ScalingDirectionNone {
 		return true
@@ -202,7 +206,6 @@ func (c *nomadClient) calculateScalingReserve(capacity *structs.ClusterCapacity,
 				capacity.TaskAllocation.DiskMB += *task.Resources.DiskMB
 			}
 		}
-
 	}
 
 	return nil
