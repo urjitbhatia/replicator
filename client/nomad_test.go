@@ -185,10 +185,10 @@ func TestNomad_MaxAllowedClusterUtilization(t *testing.T) {
 	cap.ScalingMetric.Type = ScalingMetricProcessor
 	cpuCap := MaxAllowedClusterUtilization(cap, nodeFaultTolerance, scaleIn)
 
-	if memCap != 2048 {
-		t.Fatalf("expected max memory utilization of 2048 but got %v", memCap)
+	if memCap != 5120 {
+		t.Fatalf("expected max memory utilization of 5120 but got %v", memCap)
 	}
-	if cpuCap != 2400 {
-		t.Fatalf("expected max memory utilization of 2048 but got %v", cpuCap)
+	if cpuCap != 6000 {
+		t.Fatalf("expected max cpu utilization of 6000 but got %v", cpuCap)
 	}
 }
