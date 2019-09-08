@@ -53,4 +53,10 @@ install:
 
 release:
 	@echo "==> Running $@..."
+	@echo "Latest 3 tags: "; \
+	git ls-remote --tags | awk '{print $$2}' | sort -V | tail -n 3; \
+	read -p "Enter New Tag:" tag; \
+	echo "Releasing new tag: $$tag"; \
+	git tag $$tag; \
+	git push origin $$tag -f; \
 	goreleaser --rm-dist

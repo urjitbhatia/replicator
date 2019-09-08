@@ -1,55 +1,38 @@
-# This is an example goreleaser.yaml file with some sane defaults.
-# Make sure to check the documentation at http://goreleaser.com
 before:
   hooks:
-    # you may remove this if you don't use vgo
     - go mod download
-    # you may remove this if you don't need go generate
     - go generate ./...
 builds:
-- env:
-  - CGO_ENABLED=0
+  - ldflags:
+      - '-s -w -X version.build=v{{.Version}}'
+  - env:
+      - CGO_ENABLED=0
 archive:
   replacements:
+    '386': i386
     darwin: Darwin
     linux: Linux
     windows: Windows
-    386: i386
     amd64: x86_64
 checksum:
-  name_template: 'checksums.txt'
+  name_template: checksums.txt
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  name_template: '{{ .Tag }}-next'
 changelog:
   sort: asc
   filters:
     exclude:
-    - '^docs:'
-    - '^test:'
+      - '^docs:'
+      - '^test:'
 dockers:
-  -
-    goos: linux
+  - goos: linux
     goarch: amd64
-    # Name of the built binary that should be used.
-    # binary: goyaad
-    # Templates of the Docker image names.
     image_templates:
-    - "urjitbhatia/replicator:latest"
-    - "urjitbhatia/replicator:{{ .Tag }}"
-    - "urjitbhatia/replicator:{{ .Major }}"
-
-    # Skips the docker push. Could be useful if you also do draft releases.
-    # Defaults to false.
+      - 'urjitbhatia/replicator:latest'
+      - 'urjitbhatia/replicator:{{ .Tag }}'
+      - 'urjitbhatia/replicator:{{ .Major }}'
     skip_push: false
-
-    # Path to the Dockerfile (from the project root).
     dockerfile: docker/goreleaser/Dockerfile
-
-    # Template of the docker build flags.
     build_flag_templates:
-    - "--label=version={{.Version}}"
-    - "--build-arg=GOYAAD_VERSION={{.Version}}"
-    # If Dockerfile copies files other than the binary itself,
-    # you should list them here as well.
-    # extra_files:
-    # - config.yml
+      - '--label=version={{.Version}}'
+      - '--build-arg=GOYAAD_VERSION={{.Version}}'
