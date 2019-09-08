@@ -35,4 +35,4 @@ dockers:
     dockerfile: docker/goreleaser/Dockerfile
     build_flag_templates:
       - '--label=version={{.Version}}'
-      - '--build-arg=GOYAAD_VERSION={{.Version}}'
+      - '--build-arg=REPLICATOR_VERSION={{.Version}}'
