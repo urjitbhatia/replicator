@@ -5,7 +5,7 @@ before:
 builds:
   - ldflags:
       - '-s -w -X version.build=v{{.Version}}'
-  - env:
+    env:
       - CGO_ENABLED=0
 archive:
   replacements:
