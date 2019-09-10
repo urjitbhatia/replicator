@@ -8456,7 +8456,8 @@ func (d *DesiredUpdates) GoString() string {
 
 // msgpackHandle is a shared handle for encoding/decoding of structs
 var MsgpackHandle = func() *codec.MsgpackHandle {
-	h := &codec.MsgpackHandle{RawToString: true}
+	h := &codec.MsgpackHandle{}
+	h.RawToString = true
 
 	// Sets the default type for decoding a map into a nil interface{}.
 	// This is necessary in particular because we store the driver configs as a
