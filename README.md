@@ -2,7 +2,7 @@
 
 ### Fork Note:
 
-This fork has a bunch of bug fixes v/s the original repo. To the best of my knowledge, the original repo isn't being maintained right now so I've started doing my own releases if it helps other users.
+This fork has a bunch of bug fixes v/s the original repo. To the best of my knowledge, the original repo isn't being maintained right now so I've started doing my own releases if it helps other users. https://hub.docker.com/r/urjitbhatia/replicator
 
 # Replicator
 
