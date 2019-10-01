@@ -1,6 +1,10 @@
-# Replicator
-
 [![Build Status](https://travis-ci.org/elsevier-core-engineering/replicator.svg?branch=master)](https://travis-ci.org/elsevier-core-engineering/replicator) [![Go Report Card](https://goreportcard.com/badge/github.com/elsevier-core-engineering/replicator)](https://goreportcard.com/report/github.com/elsevier-core-engineering/replicator) [![Join the chat at https://gitter.im/els-core-engineering/replicator/Lobby](https://badges.gitter.im/els-core-engineering/replicator/Lobby.svg)](https://gitter.im/els-core-engineering/replicator?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![GoDoc](https://godoc.org/github.com/elsevier-core-engineering/replicator?status.svg)](https://godoc.org/github.com/elsevier-core-engineering/replicator)
+
+### Fork Note:
+
+This fork has a bunch of bug fixes v/s the original repo. To the best of my knowledge, the original repo isn't being maintained right now so I've started doing my own releases if it helps other users.
+
+# Replicator
 
 Replicator is a fast and highly concurrent Go daemon that provides dynamic scaling of [Nomad](https://github.com/hashicorp/nomad) jobs and worker nodes.
 
@@ -11,6 +15,8 @@ Replicator is a fast and highly concurrent Go daemon that provides dynamic scali
 *At present, worker pool autoscaling is only supported on AWS, however, future support for GCE and Azure are planned using the Go factory/provider pattern.*
 
 ### Download
+
+**Builds for this fork are hosted at:** https://hub.docker.com/r/urjitbhatia/replicator
 
 Pre-compiled releases for a number of platforms are available on the [GitHub release page](https://github.com/elsevier-core-engineering/replicator/releases). Docker images are also available from the elsce [Docker Hub page](https://hub.docker.com/r/elsce/replicator/).
 
@@ -28,7 +34,9 @@ bind_addr = "0.0.0.0"
 client {
   enabled =  true
   meta {
-    "replicator_cooldown"            = 400
+    "replicator_scalein_cooldown"     = 400
+    ## if replicator_scalein_cooldown is not supplied, the replicator_cooldown value is used for both scale_in and scale_out
+    "replicator_cooldown"             = 400
     "replicator_enabled"              = true
     "replicator_node_fault_tolerance" = 1
     "replicator_notification_uid"     = "REP2"
