@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 // MakeClientWithConfig will be written by Eric.
