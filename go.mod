@@ -16,8 +16,8 @@ require (
 	github.com/golang/protobuf v1.3.1 // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/gorilla/websocket v1.4.1 // indirect
-	github.com/hashicorp/consul v0.0.0-20190204211615-de50bc3295c9
-	github.com/hashicorp/consul-template v0.0.0-20181029211349-fd266d9f1724
+	github.com/hashicorp/consul v1.6.5
+	github.com/hashicorp/consul-template v0.24.1
 	github.com/hashicorp/go-hclog v0.8.0 // indirect
 	github.com/hashicorp/go-immutable-radix v1.1.0 // indirect
 	github.com/hashicorp/go-msgpack v0.5.3
