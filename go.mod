@@ -20,7 +20,7 @@ require (
 	github.com/hashicorp/consul/api v1.3.0
 	github.com/hashicorp/consul/sdk v0.3.0
 	github.com/hashicorp/go-hclog v0.9.2 // indirect
-	github.com/hashicorp/go-msgpack v0.5.5
+	github.com/hashicorp/go-msgpack v1.1.5
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/memberlist v0.1.5 // indirect

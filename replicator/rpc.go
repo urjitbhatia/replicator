@@ -13,7 +13,7 @@ import (
 
 // HashiMsgpackHandle is some magic.
 var HashiMsgpackHandle = func() *hcodec.MsgpackHandle {
-	h := &hcodec.MsgpackHandle{RawToString: true}
+	h := &hcodec.MsgpackHandle{}
 	h.MapType = reflect.TypeOf(map[string]interface{}(nil))
 	return h
 }()
